@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bakso Battle: Tebak Kata Online</title>
+    <style>
+        :root { --primary: #d84315; --secondary: #ff8f00; --bg: #fff3e0; }
+        body { font-family: 'Arial', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        .container { background: white; width: 90%; max-width: 500px; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; overflow-y: auto; max-height: 90vh; }
+        h1 { color: var(--primary); margin: 10px 0; }
+        .mode-btn { background: #eee; border: 2px solid #ddd; padding: 10px; margin: 5px; border-radius: 10px; cursor: pointer; display: inline-block; width: 40%; font-size: 0.9em; }
+        .selected { background: var(--secondary) !important; color: white; border-color: var(--primary); }
+        textarea { width: 100%; height: 60px; margin-top: 10px; border-radius: 10px; padding: 10px; border: 2px solid #ddd; box-sizing: border-box; }
+        .word-box { font-size: 3rem; font-weight: 900; color: var(--primary); margin: 20px 0; min-height: 100px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; border: 4px dashed var(--secondary); border-radius: 15px; background: #fffde7; line-height: 1; }
+        button.main { width: 100%; padding: 15px; font-size: 1.2rem; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .btn-go { background: #4caf50; color: white; }
+        .btn-correct { background: #4caf50; color: white; width: 48%; }
+        .btn-skip { background: #f44336; color: white; width: 48%; }
+        .btn-copy { background: #2196f3; color: white; font-size: 14px; }
+        .info { font-size: 1.2rem; font-weight: bold; color: #555; }
+        #setup, #lobby, #play, #result { display: none; }
+        .link-display { background: #f0f0f0; padding: 10px; border-radius: 10px; word-break: break-all; font-size: 11px; margin: 10px 0; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="setup">
+        <h1>🥨 Buat Room Bakso</h1>
+        <p>Pilih Mode Game:</p>
+        <div id="mode-selection">
+            <div class="mode-btn selected" onclick="selectMode('1vs1', this)">1 vs 1</div>
+            <div class="mode-btn" onclick="selectMode('2vs2', this)">2 vs 2</div>
+            <div class="mode-btn" onclick="selectMode('1vs2', this)">1 vs 2</div>
+            <div class="mode-btn" onclick="selectMode('2vs1', this)">2 vs 1</div>
+        </div>
+        <textarea id="inputWords" placeholder="Ketik kata rahasia (pisahkan dengan koma)..."></textarea>
+        <button class="main btn-go" onclick="generateGameLink()">DAPATKAN LINK GAME</button>
+        <div id="link-result" style="display:none;">
+            <div class="link-display" id="final-link"></div>
+            <button class="main btn-copy" onclick="copyLink()">SALIN & KIRIM KE TEMAN</button>
+        </div>
+    </div>
+
+    <div id="lobby">
+        <h1 id="lobby-title">Room Bakso Siap!</h1>
+        <p id="mode-info" style="font-weight:bold; color:var(--secondary);"></p>
+        <p>Siapkan HP-mu, taruh di dahi menghadap temanmu saat game dimulai!</p>
+        <button class="main btn-go" onclick="startActualGame()">MULAI MAIN!</button>
+    </div>
+
+    <div id="play">
+        <div class="info">Waktu: <span id="timer">60</span>s</div>
+        <div id="word-display" class="word-box">...</div>
+        <div style="display: flex; justify-content: space-between;">
+            <button class="btn-correct" onclick="record(true)">BENAR</button>
+            <button class="btn-skip" onclick="record(false)">LEWAT</button>
+        </div>
+        <p>Skor: <span id="current-score">0</span></p>
+    </div>
+
+    <div id="result">
+        <h1>🏆 SELESAI!</h1>
+        <h2 id="final-score-display" style="font-size: 3em; color: var(--primary);">0</h2>
+        <p>Kirim screenshot skor ini ke Grup WA!</p>
+        <button class="main btn-go" onclick="location.href=window.location.pathname">BUAT ROOM BARU</button>
+    </div>
+</div>
+
+<script>
+    let selectedMode = "1vs1";
+    let gameData = { words: [], mode: "" };
+    let score = 0;
+    let timeLeft = 60;
+    let timerId;
+
+    // Cek apakah ada data di URL
+    const params = new URLSearchParams(window.location.search);
+    const encodedData = params.get('room');
+
+    if (encodedData) {
+        document.getElementById('lobby').style.display = 'block';
+        const decoded = JSON.parse(atob(encodedData));
+        gameData = decoded;
+        document.getElementById('mode-info').innerText = "MODE: " + gameData.mode;
+    } else {
+        document.getElementById('setup').style.display = 'block';
+    }
+
+    function selectMode(m, el) {
+        selectedMode = m;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    function generateGameLink() {
+        const text = document.getElementById('inputWords').value || "Bakso,Tetelan,THR,Mudik,Nastar";
+        const wordsArr = text.split(',').map(w => w.trim());
+        const data = { mode: selectedMode, words: wordsArr };
+        const base64 = btoa(JSON.stringify(data));
+        const link = window.location.origin + window.location.pathname + "?room=" + base64;
+        
+        document.getElementById('link-result').style.display = 'block';
+        document.getElementById('final-link').innerText = link;
+    }
+
+    function copyLink() {
+        navigator.clipboard.writeText(document.getElementById('final-link').innerText);
+        alert("Link disalin! Kirim ke lawan mainmu di WA.");
+    }
+
+    function startActualGame() {
+        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('play').style.display = 'block';
+        gameData.words.sort(() => Math.random() - 0.5);
+        renderWord();
+        timerId = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timer').innerText = timeLeft;
+            if(timeLeft <= 0) finish();
+        }, 1000);
+    }
+
+    function renderWord() {
+        if(gameData.words.length === 0) return finish();
+        document.getElementById('word-display').innerText = gameData.words.pop();
+    }
+
+    function record(isCorrect) {
+        if(isCorrect) {
+            score++;
+            document.getElementById('current-score').innerText = score;
+        }
+        renderWord();
+    }
+
+    function finish() {
+        clearInterval(timerId);
+        document.getElementById('play').style.display = 'none';
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('final-score-display').innerText = score;
+    }
+</script>
+</body>
+</html>
