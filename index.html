@@ -3,48 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bakso Battle: Sensor Mode</title>
+    <title>Bakso Battle: Sensor Fix</title>
     <style>
         :root { --primary: #d84315; --correct: #4caf50; --wrong: #f44336; }
-        body { font-family: 'Arial', sans-serif; margin: 0; background: #ff9800; color: white; transition: background 0.3s; overflow: hidden; }
-        .container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; text-align: center; padding: 20px; }
-        
-        #word-display { font-size: 5rem; font-weight: 900; text-transform: uppercase; line-height: 1.1; margin: 20px 0; }
-        .instruction { font-size: 1.2rem; background: rgba(0,0,0,0.2); padding: 10px 20px; border-radius: 50px; position: absolute; bottom: 50px; }
-        
-        #setup, #lobby, #play, #result { display: none; width: 100%; }
-        .btn { padding: 15px 30px; font-size: 1.2rem; border: none; border-radius: 50px; cursor: pointer; background: white; color: var(--primary); font-weight: bold; margin: 10px; }
-        textarea { width: 80%; height: 60px; border-radius: 10px; padding: 10px; margin: 10px 0; }
+        body { font-family: 'Arial', sans-serif; margin: 0; background: #ff9800; color: white; transition: background 0.3s; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .container { text-align: center; width: 90%; }
+        #word-display { font-size: 4rem; font-weight: 900; text-transform: uppercase; margin: 20px 0; min-height: 150px; display: flex; align-items: center; justify-content: center;}
+        .timer-box { font-size: 2rem; font-weight: bold; background: rgba(0,0,0,0.3); padding: 10px 30px; border-radius: 50px; display: inline-block; margin-bottom: 20px; }
+        .btn { padding: 20px 40px; font-size: 1.5rem; border: none; border-radius: 50px; cursor: pointer; background: white; color: var(--primary); font-weight: bold; box-shadow: 0 5px #bf360c; }
+        #setup, #lobby, #play, #result { display: none; }
+        textarea { width: 100%; height: 80px; border-radius: 10px; padding: 10px; font-size: 16px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div id="setup" style="display:block;">
-        <h1>🥨 Bakso Battle Custom</h1>
-        <textarea id="inputWords" placeholder="Kata-kata rahasia (pisahkan koma)..."></textarea>
-        <br>
-        <button class="btn" onclick="generateLink()">BUAT LINK GAME</button>
-        <div id="link-res" style="word-break:break-all; font-size:10px; margin-top:10px;"></div>
+    <div id="setup">
+        <h1>🥨 Buat Game Bakso</h1>
+        <textarea id="inputWords" placeholder="Contoh: Pentol, Urat, Kuah, Es Teh (Pisahkan dengan koma)"></textarea><br><br>
+        <button class="btn" onclick="generateLink()">BUAT LINK</button>
+        <p id="link-res" style="word-break:break-all; font-size: 12px; margin-top:15px; background:white; color:black; padding:10px; border-radius:10px; display:none;"></p>
     </div>
 
     <div id="lobby">
         <h1>SIAP MAIN?</h1>
-        <p>Tegakkan HP di dahi menghadap teman.</p>
-        <p>✅ <b>Tundukkan ke depan</b> untuk BENAR</p>
-        <p>❌ <b>Tengadahkan ke belakang</b> untuk LEWAT</p>
-        <button class="btn" onclick="requestPermission()">MULAI GAME</button>
+        <div style="text-align: left; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 15px; margin-bottom: 20px;">
+            <p>1. Taruh HP di dahi (layar ke depan)</p>
+            <p>2. ✅ <b>Tundukkan ke depan</b> (Benar)</p>
+            <p>3. ❌ <b>Tengadahkan ke atas</b> (Lewat)</p>
+        </div>
+        <button class="btn" onclick="initGame()">MULAI SEKARANG</button>
     </div>
 
     <div id="play">
-        <h2 id="timer">60</h2>
-        <div id="word-display">...</div>
-        <div class="instruction" id="status-hint">Posisikan HP Tegak</div>
+        <div class="timer-box" id="timer">60</div>
+        <div id="word-display">POSISIKAN HP TEGAK</div>
     </div>
 
     <div id="result">
         <h1>WAKTU HABIS!</h1>
-        <h2 id="final-score" style="font-size: 4rem;">0</h2>
+        <p style="font-size: 1.5rem;">Skor Kamu:</p>
+        <h2 id="final-score" style="font-size: 5rem; margin: 10px 0;">0</h2>
         <button class="btn" onclick="location.reload()">MAIN LAGI</button>
     </div>
 </div>
@@ -54,26 +53,34 @@
     let score = 0;
     let timeLeft = 60;
     let isGameActive = false;
-    let lastTilt = 0; // 0: upright, 1: correct, 2: skip
+    let canAction = true; 
 
+    // Cek URL
     const params = new URLSearchParams(window.location.search);
     if(params.get('room')) {
-        document.getElementById('setup').style.display = 'none';
         document.getElementById('lobby').style.display = 'block';
-        words = JSON.parse(atob(params.get('room'))).sort(() => Math.random() - 0.5);
+        try {
+            words = JSON.parse(atob(params.get('room'))).sort(() => Math.random() - 0.5);
+        } catch(e) { 
+            alert("Link Error!"); 
+            document.getElementById('setup').style.display = 'block';
+        }
+    } else {
+        document.getElementById('setup').style.display = 'block';
     }
 
     function generateLink() {
-        const txt = document.getElementById('inputWords').value || "Bakso,Tetelan,THR,Nastar";
-        const link = window.location.origin + window.location.pathname + "?room=" + btoa(JSON.stringify(txt.split(',')));
-        document.getElementById('link-res').innerText = "Kirim link ini: " + link;
+        const val = document.getElementById('inputWords').value || "Bakso,Ketupat,Opor,Nastar";
+        const link = window.location.origin + window.location.pathname + "?room=" + btoa(JSON.stringify(val.split(',')));
+        const res = document.getElementById('link-res');
+        res.style.display = "block";
+        res.innerText = link;
     }
 
-    function requestPermission() {
+    function initGame() {
+        // Minta izin sensor (Khusus iPhone)
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission()
-                .then(response => { if (response == 'granted') startGame(); })
-                .catch(console.error);
+            DeviceOrientationEvent.requestPermission().then(startGame).catch(startGame);
         } else {
             startGame();
         }
@@ -81,40 +88,49 @@
 
     function startGame() {
         document.getElementById('lobby').style.display = 'none';
-        document.getElementById('play').style.display = 'flex';
-        isGameActive = true;
-        nextWord();
+        document.getElementById('play').style.display = 'block';
         
-        setInterval(() => {
-            if(!isGameActive) return;
+        score = 0;
+        timeLeft = 60;
+        isGameActive = true;
+
+        // Timer Start
+        const countdown = setInterval(() => {
+            if(!isGameActive) { clearInterval(countdown); return; }
             timeLeft--;
             document.getElementById('timer').innerText = timeLeft;
             if(timeLeft <= 0) endGame();
         }, 1000);
 
         window.addEventListener('deviceorientation', handleMotion);
+        nextWord();
     }
 
     function handleMotion(event) {
-        if (!isGameActive) return;
-        let tilt = event.beta; // Kemiringan depan-belakang
+        if (!isGameActive || !canAction) return;
 
-        // Deteksi posisi
-        if (tilt > 110 && lastTilt !== 1) { // Menunduk ke depan (Benar)
-            document.body.style.background = "#4caf50";
-            document.getElementById('word-display').innerText = "BERHASIL!";
+        let tilt = event.beta; // Kemiringan HP
+
+        // 1. BENAR (Nunduk ke depan > 110 derajat)
+        if (tilt > 115) {
+            canAction = false;
             score++;
-            lastTilt = 1;
-            setTimeout(nextWord, 600);
-        } else if (tilt < 60 && lastTilt !== 2) { // Menengadah ke belakang (Lewat)
+            document.body.style.background = "#4caf50";
+            document.getElementById('word-display').innerText = "BENAR! ✅";
+            setTimeout(() => { resetPos(); nextWord(); }, 800);
+        } 
+        // 2. LEWAT (Dongak ke belakang < 65 derajat)
+        else if (tilt < 65) {
+            canAction = false;
             document.body.style.background = "#f44336";
-            document.getElementById('word-display').innerText = "LEWAT!";
-            lastTilt = 2;
-            setTimeout(nextWord, 600);
-        } else if (tilt >= 75 && tilt <= 100) { // Posisi tegak kembali
-            document.body.style.background = "#ff9800";
-            lastTilt = 0;
+            document.getElementById('word-display').innerText = "LEWAT... ❌";
+            setTimeout(() => { resetPos(); nextWord(); }, 800);
         }
+    }
+
+    function resetPos() {
+        document.body.style.background = "#ff9800";
+        canAction = true;
     }
 
     function nextWord() {
@@ -126,8 +142,7 @@
         isGameActive = false;
         document.getElementById('play').style.display = 'none';
         document.getElementById('result').style.display = 'block';
-        document.getElementById('final-score').innerText = "Skor: " + score;
-        document.body.style.background = "#d84315";
+        document.getElementById('final-score').innerText = score;
     }
 </script>
 </body>
