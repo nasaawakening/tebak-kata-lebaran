@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bakso Battle: Anti-Error Mode</title>
+    <title>Bakso Battle: Sabar Mode</title>
     <style>
         :root { --primary: #d84315; --correct: #4caf50; --wrong: #f44336; }
         body { font-family: 'Arial', sans-serif; margin: 0; background: #ff9800; color: white; transition: background 0.3s; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
         .container { text-align: center; width: 95%; }
-        #word-display { font-size: 3.5rem; font-weight: 900; text-transform: uppercase; margin: 20px 0; min-height: 180px; display: flex; align-items: center; justify-content: center; line-height: 1.2; padding: 10px;}
-        .timer-box { font-size: 2rem; font-weight: bold; background: rgba(0,0,0,0.3); padding: 10px 30px; border-radius: 50px; display: inline-block; margin-bottom: 10px; }
-        .btn { padding: 15px 30px; font-size: 1.2rem; border: none; border-radius: 50px; cursor: pointer; background: white; color: var(--primary); font-weight: bold; box-shadow: 0 5px #bf360c; margin: 10px 0; width: 80%; }
+        #word-display { font-size: 3.5rem; font-weight: 900; text-transform: uppercase; margin: 20px 0; min-height: 200px; display: flex; align-items: center; justify-content: center; line-height: 1.2; padding: 20px;}
+        .timer-box { font-size: 2.5rem; font-weight: bold; background: rgba(0,0,0,0.3); padding: 10px 40px; border-radius: 50px; display: inline-block; margin-bottom: 10px; }
+        .btn { padding: 15px 30px; font-size: 1.5rem; border: none; border-radius: 50px; cursor: pointer; background: white; color: var(--primary); font-weight: bold; box-shadow: 0 5px #bf360c; margin: 10px 0; width: 80%; }
         #menu, #play, #result { display: none; }
+        .status-text { font-size: 1.2rem; font-weight: bold; margin-top: 10px; height: 30px; }
     </style>
 </head>
 <body>
@@ -19,25 +20,19 @@
 <div class="container">
     <div id="menu" style="display:block;">
         <h1>🥨 BAKSO BATTLE</h1>
-        <p>Edisi Warung Pak Romdani</p>
-        <div style="font-size: 0.9rem; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 15px; text-align: left; margin-bottom: 10px;">
-            <b>Cara Gerak:</b><br>
-            - ✅ <b>Tunduk Tajam</b> ke depan (Benar)<br>
-            - ❌ <b>Tengadah Tajam</b> ke atas (Lewat)<br>
-            - <i>Pastikan balik tegak tiap ganti kata!</i>
-        </div>
+        <p>Versi Sabar & Anti-Lewat</p>
         <button class="btn" onclick="initGame()">MULAI MAIN</button>
     </div>
 
     <div id="play">
         <div class="timer-box" id="timer">60</div>
-        <div id="word-display">TEGAKKAN HP...</div>
-        <p id="score-live" style="font-weight:bold;">Skor: 0</p>
+        <div id="word-display">PERSIAPAN...</div>
+        <div class="status-text" id="status-text"></div>
+        <p id="score-live">Skor: 0</p>
     </div>
 
     <div id="result">
-        <h1>GAME SELESAI!</h1>
-        <p>Skor Akhir:</p>
+        <h1>WAKTU HABIS!</h1>
         <h2 id="final-score" style="font-size: 5rem; margin: 10px 0;">0</h2>
         <button class="btn" onclick="location.reload()">COBA LAGI</button>
     </div>
@@ -49,7 +44,7 @@
     let score = 0;
     let timeLeft = 60;
     let isGameActive = false;
-    let canAction = true;
+    let canAction = false; // Awalnya dikunci
 
     function initGame() {
         words = [...defaultWords].sort(() => Math.random() - 0.5);
@@ -79,38 +74,47 @@
     function handleMotion(event) {
         if (!isGameActive || !canAction) return;
         
-        // Beta adalah kemiringan HP (posisi portrait)
-        // 90 derajat = tegak lurus
         let tilt = event.beta; 
 
-        // 1. BENAR (Nunduk lebih dari 120 derajat)
-        if (tilt > 125) {
-            triggerAction("BENAR! ✅", "#4caf50", true);
+        // 1. BENAR (Nunduk Tajam > 130 derajat)
+        if (tilt > 135) {
+            processResult("BENAR! ✅", "#4caf50", true);
         } 
-        // 2. LEWAT (Dongak kurang dari 40 derajat - dibuat lebih susah biar gak gampang kepencet)
-        else if (tilt < 45) {
-            triggerAction("LEWAT... ❌", "#f44336", false);
+        // 2. LEWAT (Tengadah Tajam < 40 derajat)
+        else if (tilt < 35) {
+            processResult("LEWAT... ❌", "#f44336", false);
         }
     }
 
-    function triggerAction(text, color, isCorrect) {
-        canAction = false;
+    function processResult(msg, color, isCorrect) {
+        canAction = false; // Kunci sensor segera
         if(isCorrect) score++;
+        
         document.getElementById('score-live').innerText = "Skor: " + score;
         document.body.style.background = color;
-        document.getElementById('word-display').innerText = text;
-        
-        // Kasih jeda 1 detik buat balik ke posisi tegak
+        document.getElementById('word-display').innerText = msg;
+        document.getElementById('status-text').innerText = "Balikkan HP ke posisi tegak...";
+
+        // Jeda 1.5 detik sebelum ganti kata
         setTimeout(() => {
             document.body.style.background = "#ff9800";
             nextWord();
-            setTimeout(() => { canAction = true; }, 500);
-        }, 1000);
+        }, 1500);
     }
 
     function nextWord() {
         if (words.length === 0) return endGame();
+        
+        canAction = false; // Pastikan sensor mati saat kata baru muncul
         document.getElementById('word-display').innerText = words.pop();
+        document.getElementById('status-text').innerText = "Menyiapkan kata...";
+
+        // KASIH JEDA 2 DETIK agar pemain punya waktu buat kasih hint
+        // Sensor baru aktif setelah 2 detik posisi tegak
+        setTimeout(() => {
+            document.getElementById('status-text').innerText = "SENSOR AKTIF!";
+            canAction = true;
+        }, 2000); 
     }
 
     function endGame() {
