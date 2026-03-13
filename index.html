@@ -3,50 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bakso Battle: Sabar Mode</title>
+    <title>Bakso Battle Pro: Edisi Lebaran</title>
     <style>
-        :root { --primary: #d84315; --correct: #4caf50; --wrong: #f44336; }
-        body { font-family: 'Arial', sans-serif; margin: 0; background: #ff9800; color: white; transition: background 0.3s; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .container { text-align: center; width: 95%; }
-        #word-display { font-size: 3.5rem; font-weight: 900; text-transform: uppercase; margin: 20px 0; min-height: 200px; display: flex; align-items: center; justify-content: center; line-height: 1.2; padding: 20px;}
-        .timer-box { font-size: 2.5rem; font-weight: bold; background: rgba(0,0,0,0.3); padding: 10px 40px; border-radius: 50px; display: inline-block; margin-bottom: 10px; }
-        .btn { padding: 15px 30px; font-size: 1.5rem; border: none; border-radius: 50px; cursor: pointer; background: white; color: var(--primary); font-weight: bold; box-shadow: 0 5px #bf360c; margin: 10px 0; width: 80%; }
-        #menu, #play, #result { display: none; }
-        .status-text { font-size: 1.2rem; font-weight: bold; margin-top: 10px; height: 30px; }
+        :root {
+            --primary: #FF5722; /* Oranye Bakso */
+            --secondary: #FFC107; /* Kuning Kuah */
+            --correct: #4CAF50; /* Hijau Sambal Hijau */
+            --wrong: #F44336; /* Merah Saus */
+            --bg: #FFF3E0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: #333;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.4s;
+        }
+
+        /* 1. LOADING SCREEN (LOGO BAKSO MELAYANG) */
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 999;
+            transition: opacity 0.5s;
+        }
+        .bakso-logo { font-size: 8rem; animation: float 2s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(10deg); }
+        }
+
+        .container { text-align: center; width: 90%; max-width: 450px; }
+
+        /* 2. DESAIN MENU (PLAYSTORE STYLE) */
+        #menu {
+            background: white; padding: 30px; border-radius: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        h1 { color: var(--primary); font-size: 2.5rem; margin-bottom: 5px; }
+        .subtitle { color: #888; margin-top: 0; font-size: 0.9rem; }
+        .guide-box {
+            background: #F5F5F5; padding: 15px; border-radius: 15px;
+            text-align: left; font-size: 0.9rem; border-left: 5px solid var(--secondary);
+            margin: 20px 0;
+        }
+
+        /* 3. TOMBOL GLOSSY */
+        .btn {
+            background: linear-gradient(45deg, var(--primary), #FF7043);
+            color: white; border: none; padding: 18px 40px;
+            font-size: 1.3rem; font-weight: bold; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 6px 15px rgba(255,87,34,0.4);
+            transition: 0.2s; width: 100%; box-sizing: border-box;
+        }
+        .btn:active { transform: scale(0.97); box-shadow: 0 2px 5px rgba(255,87,34,0.3); }
+
+        /* 4. GAME SCREEN */
+        #play, #result { display: none; width: 100%; }
+        #word-display {
+            font-size: 3.8rem; font-weight: 900; text-transform: uppercase;
+            color: white; min-height: 200px; display: flex;
+            align-items: center; justify-content: center; line-height: 1.1;
+            background: rgba(0,0,0,0.1); border-radius: 20px; padding: 20px;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+        .timer-bar {
+            width: 100%; height: 10px; background: rgba(0,0,0,0.1);
+            border-radius: 10px; margin-bottom: 10px; overflow: hidden;
+        }
+        .timer-progress {
+            height: 100%; background: var(--secondary);
+            width: 100%; transition: width 1s linear, background 0.3s;
+        }
+        .score-live { font-size: 1.2rem; font-weight: bold; color: white; margin: 10px 0;}
+
+        /* RESULT SCREEN */
+        #result { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .final-score { font-size: 6rem; color: var(--primary); font-weight: bold; margin: 10px 0; }
     </style>
 </head>
 <body>
 
+<div id="loading-screen">
+    <div class="bakso-logo">🥣</div>
+    <p style="color:#888;">Menyiapkan Mangkok...</p>
+</div>
+
 <div class="container">
-    <div id="menu" style="display:block;">
+    <div id="menu">
         <h1>🥨 BAKSO BATTLE</h1>
-        <p>Versi Sabar & Anti-Lewat</p>
+        <p class="subtitle">Edisi Pro Warung Pak Romdani</p>
+        <div class="guide-box">
+            <b>Gerakan Sakti:</b><br>
+            ✅ <b>Tunduk HP</b> ke depan = BENAR<br>
+            ❌ <b>Tengadah HP</b> ke belakang = LEWAT<br>
+            <i>(Tunggu 1 detik di posisi tegak tiap kata)</i>
+        </div>
         <button class="btn" onclick="initGame()">MULAI MAIN</button>
     </div>
 
     <div id="play">
-        <div class="timer-box" id="timer">60</div>
+        <div class="timer-bar"><div class="timer-progress" id="timer-progress"></div></div>
+        <p class="score-live">Skor: <span id="score-live">0</span></p>
         <div id="word-display">PERSIAPAN...</div>
-        <div class="status-text" id="status-text"></div>
-        <p id="score-live">Skor: 0</p>
     </div>
 
     <div id="result">
-        <h1>WAKTU HABIS!</h1>
-        <h2 id="final-score" style="font-size: 5rem; margin: 10px 0;">0</h2>
+        <h1>GAME SELESAI!</h1>
+        <p style="color:#888;">Poin yang berhasil kamu kumpulkan:</p>
+        <div class="final-score" id="final-score">0</div>
         <button class="btn" onclick="location.reload()">COBA LAGI</button>
     </div>
 </div>
 
 <script>
+    // --- KONFIGURASI KATA ---
     let words = [];
     const defaultWords = ["BAKSO URAT", "PENTOL JUMBO", "TETELAN", "KUAH KALDU", "ES TEH", "NASTAR", "THR", "MUDIK", "SUNGKEMAN", "OPOR"];
+    
+    // --- KONFIGURASI SUARA (WEB AUDIO API) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let correctSound, wrongSound;
+
+    function loadSounds() {
+        // Suara TING (Benar) - Nada tinggi & singkat
+        correctSound = audioCtx.createOscillator();
+        correctSound.frequency.setValueAtTime(1000, audioCtx.currentTime); // Nada tinggi
+        correctSound.type = 'sine';
+
+        // Suara ZONK/KLAK (Salah) - Nada rendah & keruh
+        wrongSound = audioCtx.createOscillator();
+        wrongSound.frequency.setValueAtTime(150, audioCtx.currentTime); // Nada rendah
+        wrongSound.type = 'triangle';
+    }
+
+    // Fungsi untuk memutar suara (Correct/Wrong)
+    function playAudio(type) {
+        if (!correctSound || !wrongSound) return; // Belum load
+        
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        if (type === 'correct') {
+            osc.frequency.setValueAtTime(1200, audioCtx.currentTime); 
+            osc.type = 'sine';
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3); // Suara TING singkat
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        } else {
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.2); // Nada jatuh
+            osc.type = 'triangle';
+            gainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4); // Suara ZONK
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+    }
+
+    // --- LOGIKA GAME ---
     let score = 0;
     let timeLeft = 60;
     let isGameActive = false;
-    let canAction = false; // Awalnya dikunci
+    let canAction = false; // Dikunci saat kata baru muncul (Sabar Mode)
+
+    // Simulasi Loading Screen
+    window.onload = function() {
+        setTimeout(() => {
+            document.getElementById('loading-screen').style.opacity = '0';
+            setTimeout(() => { document.getElementById('loading-screen').style.display = 'none'; }, 500);
+        }, 1500); // Tampilkan logo 1.5 detik
+    }
 
     function initGame() {
+        // MUDAHKAN SUARA SAAT KLIK PERTAMA
+        audioCtx.resume(); 
+        loadSounds();
+
         words = [...defaultWords].sort(() => Math.random() - 0.5);
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
             DeviceOrientationEvent.requestPermission().then(startGame).catch(startGame);
@@ -58,12 +200,19 @@
     function startGame() {
         document.getElementById('menu').style.display = 'none';
         document.getElementById('play').style.display = 'block';
+        document.body.style.background = "#FF9800"; // Warna Dasar Game (Oranye)
+
         score = 0; timeLeft = 60; isGameActive = true;
         
         const countdown = setInterval(() => {
             if(!isGameActive) { clearInterval(countdown); return; }
             timeLeft--;
-            document.getElementById('timer').innerText = timeLeft;
+            const progress = (timeLeft / 60) * 100;
+            document.getElementById('timer-progress').style.width = progress + "%";
+            
+            // Ubah warna timer kalau mau habis
+            if(timeLeft < 15) document.getElementById('timer-progress').style.background = var('--wrong');
+
             if(timeLeft <= 0) endGame();
         }, 1000);
 
@@ -74,54 +223,52 @@
     function handleMotion(event) {
         if (!isGameActive || !canAction) return;
         
-        let tilt = event.beta; 
+        let tilt = event.beta; // Kemiringan HP
 
-        // 1. BENAR (Nunduk Tajam > 130 derajat)
+        // 1. BENAR (Nunduk Tajam > 135 derajat)
         if (tilt > 135) {
-            processResult("BENAR! ✅", "#4caf50", true);
+            processResult("BENAR! ✅", "#4caf50", 'correct');
         } 
         // 2. LEWAT (Tengadah Tajam < 40 derajat)
         else if (tilt < 35) {
-            processResult("LEWAT... ❌", "#f44336", false);
+            processResult("LEWAT... ❌", "#f44336", 'wrong');
         }
     }
 
-    function processResult(msg, color, isCorrect) {
-        canAction = false; // Kunci sensor segera
-        if(isCorrect) score++;
+    function processResult(msg, color, soundType) {
+        canAction = false; 
+        if(soundType === 'correct') score++;
         
-        document.getElementById('score-live').innerText = "Skor: " + score;
+        playAudio(soundType); // PUTAR SUARA TING / ZONK
+        
+        document.getElementById('score-live').innerText = score;
         document.body.style.background = color;
         document.getElementById('word-display').innerText = msg;
-        document.getElementById('status-text').innerText = "Balikkan HP ke posisi tegak...";
 
-        // Jeda 1.5 detik sebelum ganti kata
+        // Jeda 1.2 detik sebelum ganti kata
         setTimeout(() => {
-            document.body.style.background = "#ff9800";
+            document.body.style.background = "#FF9800"; // Balik ke oranye game
             nextWord();
-        }, 1500);
+        }, 1200);
     }
 
     function nextWord() {
         if (words.length === 0) return endGame();
         
-        canAction = false; // Pastikan sensor mati saat kata baru muncul
+        canAction = false; // Sensor mati saat kata baru muncul
         document.getElementById('word-display').innerText = words.pop();
-        document.getElementById('status-text').innerText = "Menyiapkan kata...";
 
-        // KASIH JEDA 2 DETIK agar pemain punya waktu buat kasih hint
-        // Sensor baru aktif setelah 2 detik posisi tegak
-        setTimeout(() => {
-            document.getElementById('status-text').innerText = "SENSOR AKTIF!";
-            canAction = true;
-        }, 2000); 
+        // KASIH JEDA 2 DETIK (Versi Sabar agar sempat kasih hint)
+        setTimeout(() => { canAction = true; }, 2000); 
     }
 
     function endGame() {
         isGameActive = false;
+        playAudio('wrong'); // Suara terakhir saat waktu habis
         document.getElementById('play').style.display = 'none';
         document.getElementById('result').style.display = 'block';
         document.getElementById('final-score').innerText = score;
+        document.body.style.background = var('--bg'); // Balik ke warna BG menu
     }
 </script>
 </body>
