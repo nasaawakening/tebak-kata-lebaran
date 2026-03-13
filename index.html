@@ -3,46 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bakso Battle: Sensor Fix</title>
+    <title>Bakso Battle: Langsung Main!</title>
     <style>
         :root { --primary: #d84315; --correct: #4caf50; --wrong: #f44336; }
         body { font-family: 'Arial', sans-serif; margin: 0; background: #ff9800; color: white; transition: background 0.3s; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .container { text-align: center; width: 90%; }
-        #word-display { font-size: 4rem; font-weight: 900; text-transform: uppercase; margin: 20px 0; min-height: 150px; display: flex; align-items: center; justify-content: center;}
-        .timer-box { font-size: 2rem; font-weight: bold; background: rgba(0,0,0,0.3); padding: 10px 30px; border-radius: 50px; display: inline-block; margin-bottom: 20px; }
-        .btn { padding: 20px 40px; font-size: 1.5rem; border: none; border-radius: 50px; cursor: pointer; background: white; color: var(--primary); font-weight: bold; box-shadow: 0 5px #bf360c; }
-        #setup, #lobby, #play, #result { display: none; }
-        textarea { width: 100%; height: 80px; border-radius: 10px; padding: 10px; font-size: 16px; }
+        .container { text-align: center; width: 95%; }
+        #word-display { font-size: 3.5rem; font-weight: 900; text-transform: uppercase; margin: 20px 0; min-height: 180px; display: flex; align-items: center; justify-content: center; line-height: 1.2;}
+        .timer-box { font-size: 2rem; font-weight: bold; background: rgba(0,0,0,0.3); padding: 10px 30px; border-radius: 50px; display: inline-block; margin-bottom: 10px; }
+        .btn { padding: 15px 30px; font-size: 1.2rem; border: none; border-radius: 50px; cursor: pointer; background: white; color: var(--primary); font-weight: bold; box-shadow: 0 5px #bf360c; margin: 10px 0; width: 80%; }
+        #menu, #play, #result { display: none; }
+        .guide { font-size: 0.9rem; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 15px; margin-bottom: 20px; text-align: left; display: inline-block; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div id="setup">
-        <h1>🥨 Buat Game Bakso</h1>
-        <textarea id="inputWords" placeholder="Contoh: Pentol, Urat, Kuah, Es Teh (Pisahkan dengan koma)"></textarea><br><br>
-        <button class="btn" onclick="generateLink()">BUAT LINK</button>
-        <p id="link-res" style="word-break:break-all; font-size: 12px; margin-top:15px; background:white; color:black; padding:10px; border-radius:10px; display:none;"></p>
-    </div>
-
-    <div id="lobby">
-        <h1>SIAP MAIN?</h1>
-        <div style="text-align: left; background: rgba(0,0,0,0.1); padding: 15px; border-radius: 15px; margin-bottom: 20px;">
-            <p>1. Taruh HP di dahi (layar ke depan)</p>
-            <p>2. ✅ <b>Tundukkan ke depan</b> (Benar)</p>
-            <p>3. ❌ <b>Tengadahkan ke atas</b> (Lewat)</p>
-        </div>
-        <button class="btn" onclick="initGame()">MULAI SEKARANG</button>
+    <div id="menu" style="display:block;">
+        <h1>🥨 BAKSO BATTLE</h1>
+        <p>Edisi Bakso Bangi Pak Romdani</p>
+        <div class="guide">
+            Cara Main:<br>
+            - Taruh HP di dahi (layar ke teman)<br>
+            - ✅ <b>Nunduk ke depan</b> = BENAR<br>
+            - ❌ <b>Tengadah ke atas</b> = LEWAT
+        </div><br>
+        <button class="btn" onclick="initGame('default')">MAIN SEKARANG</button>
     </div>
 
     <div id="play">
         <div class="timer-box" id="timer">60</div>
         <div id="word-display">POSISIKAN HP TEGAK</div>
+        <p id="score-live">Skor: 0</p>
     </div>
 
     <div id="result">
         <h1>WAKTU HABIS!</h1>
-        <p style="font-size: 1.5rem;">Skor Kamu:</p>
+        <p>Skor Akhir:</p>
         <h2 id="final-score" style="font-size: 5rem; margin: 10px 0;">0</h2>
         <button class="btn" onclick="location.reload()">MAIN LAGI</button>
     </div>
@@ -50,35 +46,30 @@
 
 <script>
     let words = [];
+    // Daftar kata otomatis kalau tidak pakai Room
+    const defaultWords = [
+        "BAKSO URAT", "PENTOL JUMBO", "TETELAN", "KUAH KALDU", "ES TEH MANIS", 
+        "KETUPAT", "OPOR AYAM", "NASTAR", "SUNGKEMAN", "AMPLOP THR", 
+        "MUDIK", "JERUK NIPIS", "SAUS SAMBAL", "BIHUN", "KERUPUK"
+    ];
+    
     let score = 0;
     let timeLeft = 60;
     let isGameActive = false;
-    let canAction = true; 
-
-    // Cek URL
-    const params = new URLSearchParams(window.location.search);
-    if(params.get('room')) {
-        document.getElementById('lobby').style.display = 'block';
-        try {
-            words = JSON.parse(atob(params.get('room'))).sort(() => Math.random() - 0.5);
-        } catch(e) { 
-            alert("Link Error!"); 
-            document.getElementById('setup').style.display = 'block';
-        }
-    } else {
-        document.getElementById('setup').style.display = 'block';
-    }
-
-    function generateLink() {
-        const val = document.getElementById('inputWords').value || "Bakso,Ketupat,Opor,Nastar";
-        const link = window.location.origin + window.location.pathname + "?room=" + btoa(JSON.stringify(val.split(',')));
-        const res = document.getElementById('link-res');
-        res.style.display = "block";
-        res.innerText = link;
-    }
+    let canAction = true;
 
     function initGame() {
-        // Minta izin sensor (Khusus iPhone)
+        // Cek apakah ada data room di URL, kalau tidak ada pakai default
+        const params = new URLSearchParams(window.location.search);
+        if(params.get('room')) {
+            try {
+                words = JSON.parse(atob(params.get('room'))).sort(() => Math.random() - 0.5);
+            } catch(e) { words = [...defaultWords].sort(() => Math.random() - 0.5); }
+        } else {
+            words = [...defaultWords].sort(() => Math.random() - 0.5);
+        }
+
+        // Izin Sensor
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
             DeviceOrientationEvent.requestPermission().then(startGame).catch(startGame);
         } else {
@@ -87,14 +78,13 @@
     }
 
     function startGame() {
-        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('menu').style.display = 'none';
         document.getElementById('play').style.display = 'block';
         
         score = 0;
         timeLeft = 60;
         isGameActive = true;
 
-        // Timer Start
         const countdown = setInterval(() => {
             if(!isGameActive) { clearInterval(countdown); return; }
             timeLeft--;
@@ -108,19 +98,19 @@
 
     function handleMotion(event) {
         if (!isGameActive || !canAction) return;
+        let tilt = event.beta; 
 
-        let tilt = event.beta; // Kemiringan HP
-
-        // 1. BENAR (Nunduk ke depan > 110 derajat)
+        // BENAR (Nunduk)
         if (tilt > 115) {
             canAction = false;
             score++;
+            document.getElementById('score-live').innerText = "Skor: " + score;
             document.body.style.background = "#4caf50";
             document.getElementById('word-display').innerText = "BENAR! ✅";
             setTimeout(() => { resetPos(); nextWord(); }, 800);
         } 
-        // 2. LEWAT (Dongak ke belakang < 65 derajat)
-        else if (tilt < 65) {
+        // LEWAT (Dongak)
+        else if (tilt < 60) {
             canAction = false;
             document.body.style.background = "#f44336";
             document.getElementById('word-display').innerText = "LEWAT... ❌";
@@ -143,6 +133,7 @@
         document.getElementById('play').style.display = 'none';
         document.getElementById('result').style.display = 'block';
         document.getElementById('final-score').innerText = score;
+        document.body.style.background = "#d84315";
     }
 </script>
 </body>
